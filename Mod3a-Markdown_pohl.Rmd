@@ -1,0 +1,181 @@
+---
+title: "First MarkdOWn Document"
+Author: Vicki Pohl
+date: "2024-03-20"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE) 
+
+```
+```{r}
+# install.packages("tinytex")
+# tinytex::install_tinytex()
+```
+
+```{r}
+library(tidyverse)
+pay <- read.csv("pay_history_clean.csv")
+head(pay)
+```
+# Summary Introduction:
+
+This is payroll data or employment data from a company that hires people. The data contains a "Rate" of pay field, numeric data that I used. I had 
+hoped to use the three dates provided, "BirthDate, StartDAte and EndDate," however, these columns proved to have "NULL" values that caused data loss. I have produced 8 graphic visualizations from this data. 
+```{r pay}
+summary(pay)
+```
+
+## Including Plots
+
+
+```{r}
+pay <- pay %>% 
+  mutate(EmployeeID=as.character(EmployeeID), SalariedFlag=as.character(SalariedFlag))
+str(pay)
+```
+
+
+### Graph 1
+This graph demonstrates that salaried employees earn a higher wage than non-salaried employees. Salaried employees may work additional hours that they are not necessarily paid by the hour for having worked them. Because this as an "accrued" bank of Vacation hours it is difficult to tell, who was hired most recently and therefore has fewer hours accrued? Who is taking vacations as opposed to those employees who don't take time off for years? 
+```{r}
+ggplot(data=pay) +
+  geom_point(mapping = aes(x=VacationHours, y=Rate, color=SalariedFlag))  +     theme(panel.background = element_blank(), legend.key = element_blank()) +
+  ylab("Rate of Pay") +
+  xlab("Vacation Hours Accrued") +
+  scale_fill_manual(guide=guide_legend(title="Employee Type"))
+```
+
+
+
+
+
+### Graph 2
+This bar graph groups average pay rates by category of job title. We see the tallest bar or greatest wage corresponds to executive level employees. Executives earn an average wage of $69 dollars per hour. This does not include any bonus earnings.Research and Development associates, on average $43/hour. The Engineering staff ranks third in wages at this company. I expected the Sales department to rank above $30/hr. I assume Sales receives bonus and commission that are not reflected in their baseline wage. 
+```{r}
+if(!requireNamespace("dplyr", quietly=TRUE)) install.packages("dplyr")
+library(dplyr)
+ avg_pay_rate_by_dept <- 
+  pay %>% 
+  group_by(DepartmentName) %>% 
+             summarise(avg_pay_rate_by_dept = mean(Rate, na.rm=TRUE)) 
+  
+  ggplot(avg_pay_rate_by_dept) +
+    geom_col(mapping=aes(x=DepartmentName, y=avg_pay_rate_by_dept), fill="blue") +
+    theme(panel.background = element_blank(), legend.key = element_blank()) +
+    theme_minimal() +
+    labs(title = "Average Rate of Pay by Department",
+         x="Department",
+         y="Average Rate of Pay") +
+    theme(axis.text.x=element_text(angle=45, hjust=1))
+      
+
+```  
+
+
+### Graph 3
+Females at this company earn about $2.50 more per hour on average than the males. Many other factors are at play here like the number of females that contribute to this average. Perhaps more women than men work for this company? The CEo of this company is male and they earn the highest salary of the whole business. I expected the male wage to be higher on average than the female wage. 
+
+```{r}
+library(dplyr)
+avg_rate_of_pay_by_gender <- 
+  pay %>%
+  group_by(Gender) %>%
+    summarize(avg_rate_of_pay_by_gender = mean(Rate, na.rm=TRUE))
+ggplot(avg_rate_of_pay_by_gender) +
+  geom_col(mapping=aes(x=Gender, y=avg_rate_of_pay_by_gender), fill="blue") +
+  theme(panel.background = element_blank(), legend.key = element_blank()) +
+  theme_minimal() +
+    labs(title = "Average Rate of Pay by Gender",
+         x="Gender",
+         y="Average Rate of Pay")
+ 
+  
+
+  
+```  
+
+
+### Graph 4
+This graph expands on the general nature of Graph 3 by separating out the female and male sex inside of each department. In the executive and production departments the male average rate of pay exceeds that of the females by over 50%! The male CEO is causing the executive male category to be the subject of an outlier. The departments that pay women a higher wage on average than the men, don't exceed the male average by more than $15 per hour. 
+```{r}
+library(dplyr)
+ggplot(pay, aes(x=DepartmentName, y=Rate, fill = Gender)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = "Average Rate of Pay by Department and Gender",
+         x = "Department",
+         y = "Average Rate of Pay",
+         fill = "Gender") +
+    theme(panel.background = element_blank(), legend.key = element_blank()) +
+  theme(axis.text.x=element_text(angle=45, hjust=1))
+```
+
+
+### Graph 5
+I used a box and whisker to ascertain the relative age of the workforce at this company. This company employs a few males and females under the age of 20 years. This is a young workforce with the median age for females at 31 years and for males 30 years. The male group has three employees that age beyond the upper whisker indicating 3 outliers. 
+```{r}
+#  pay <- data.frame(
+ pay$BirthDate <- as.Date(pay$BirthDate, "%m/%d/%Y")
+ pay$StartDate <-  as.Date(pay$StartDate, "%m/%d/%Y")
+ Gender <- c("Male", "Female")
+ pay$age_of_employee <- as.integer(difftime(pay$StartDate, pay$BirthDate, units = "days") / 365.25)
+
+library(ggplot2)
+  ggplot(pay, aes(x=Gender, y=age_of_employee, fill=Gender)) +
+    geom_boxplot() +
+    labs(title="Age by Gender", x="Gender", y="Employee Age") +
+    theme_minimal()
+```
+
+
+### Graph 6
+This data set lacked numerical data that could be used as a scatter to determine possible correlations. This graph "counts" the employee as categorized by their status to demonstrate their accrued sick leave hours. Assuming that Status 1 is a "lower" status worker than status 4, a couple of things could be happening here. The status 1 employee accrues less sick leave than a status 4 employee. The status 1 employee is of a lower socioeconomic status and is sick more frequently. Alternatively, they use their sick leave to care for family members who have no help to attend doctors appointments to obtain basic level care. Status 4 employees tend to get sick less because the graph shows more dots in level 4 than any other status level.  I think the 1 NULL value is inconsequential to this analysis. 
+```{r}
+
+ggplot(pay, aes(x=OrganizationLevel, y=SickLeaveHours)) +
+  geom_point() +
+  labs(title="Sick Leave by Employee Status ", x="Status", y="Sick Hours Accrued")
+
+
+
+  #ggplot(pay, aes(x=Gender, y=age_of_employee, fill=Gender)) +
+   # geom_boxplot() +
+    #labs(title="Age by Gender", x="Gender", y="Employee Age") +
+    #theme_minimal()
+```
+
+
+### Graph 7
+This is a continuation of hourly pay rate on the x-axis into continuous bins using a histogram. The binwidth at 2 attempts to separate out the very large counts of wages that are very close together at the low end of wage. As the wage gets larger, few employees are in those wage categories as evidenced by the short bins. The axis markers are not super exact but $12.50 per hour is the most popular wage bin, plus or minus $2. 
+```{r}
+ 
+      
+ggplot(pay, aes(x=Rate)) +
+  geom_histogram(binwidth=2) +
+  theme_minimal() +
+  labs(x="Rate of Pay")
+
+
+
+
+```
+
+
+### Graph 8
+According to the HireDate of this companies employees, the majority of employees have been hired during the dead of Winter. If this was Christmas related I would expect to see hiring in October or November. More analysis would be needed to know if these are mostly production workers as this graph includes all employees. A seed, soil, or gardening type business might hire with this same pattern. 
+
+```{r}
+
+pay$HireMonth <- month(as.Date(pay$HireDate, "%m/%d/%Y"), label=TRUE, abbr=TRUE)
+ggplot(pay, aes(x=HireMonth)) +
+  geom_bar() +
+  theme_minimal() +
+  labs(x="Month of Hire")
+```
+  
+  
+#### Conclusion
+This business employs a young workforce and experiences a seasonal hiring surge during the December, January and February. They employ women and men in each department except for Production Control. Production Control is exclusively men. The majority of workers earn below $25 per hour. The highest status of worker has the most accrued sick leave hours suggesting the socio-economics afford them privilege. In the departments that male wages exceed female wages, that extra wages for men exceed the overages in departments when the females earn more than the men. For females the overage is marginal as opposed to 50% or greater. The vacation hours accrued are dispersed evenly across the average rate of pay making it difficult to know if accrual rates vary based on employee status. 
